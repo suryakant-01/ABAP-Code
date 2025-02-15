@@ -1,0 +1,74 @@
+REPORT ZSEQN_FILE_UPLOAD.
+
+* TO CREATE  LINE TYPE STRUCTURE.
+TYPES : BEGIN OF LTY_DATA,
+        MATNR TYPE MATNR,
+        MTART TYPE MTART,
+        MBRSH TYPE MBRSH,
+        MATKL TYPE MATKL,
+        MEINS TYPE MEINS,
+  END OF LTY_DATA.
+
+* TO CREATE AN INTERNAL TABLE IT_MAT OF STRUCTURE LTY_DATA.
+  DATA : IT_MAT TYPE TABLE OF LTY_DATA.
+
+* TO CREATE WORK-AREA
+  DATA : WA TYPE LTY_DATA.
+
+* TO CREATE CONSTANT
+CONSTANTS SPFILE TYPE STRING VALUE 'D:\usr\sap\Y01\DVEBMGS41\data\SF182'.
+
+  START-OF-SELECTION.
+  PERFORM CREATE_DSN.
+  PERFORM UPLOAD_DSN.
+  PERFORM CLOSE_DSN.
+
+
+
+*&---------------------------------------------------------------------*
+*&      Form  TRANSFER_DSN
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM UPLOAD_DSN.
+ DO.
+   READ DATASET SPFILE INTO WA.
+   IF SY-SUBRC = 0.
+    APPEND WA TO IT_MAT.
+   ELSE.
+     EXIT.
+     ENDIF.
+ ENDDO.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  CREATE_DSN
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM CREATE_DSN .
+*OPEN DATASET 'SEQN7' FOR OUTPUT IN TEXT MODE ENCODING DEFAULT. THIS IS HARD-CODE
+  OPEN DATASET SPFILE FOR INPUT IN TEXT MODE ENCODING DEFAULT.
+   IF SY-SUBRC <> 0.
+     MESSAGE 'FILE NOT FOUND' TYPE 'E'.
+     ENDIF.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*&      Form  CLOSE_DSN
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM CLOSE_DSN .
+*   CLOSE DATASET 'SEQN7'. HOAD CODE
+  CLOSE DATASET SPFILE.
+  CL_DEMO_OUTPUT=>DISPLAY( IT_MAT ).
+ENDFORM.
