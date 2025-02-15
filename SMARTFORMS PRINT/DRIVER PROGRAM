@@ -1,0 +1,69 @@
+*TO WRITE A PRINT/DRIVER PROGRAM
+REPORT ZPRINT_ZSMF_REAL_TIME.
+
+DATA : P_NAME TYPE CHAR20,
+       P_HNO TYPE  CHAR15,
+       P_STREET TYPE CHAR15,
+       P_STATE TYPE CHAR15,
+       P_CITY TYPE CHAR15,
+       P_COUN TYPE CHAR10,
+       P_TEXT TYPE CHAR50,
+       P_FMNAME TYPE RS38L_FNAM,
+       P_FORMNAME TYPE TDSFNAME VALUE 'ZSMF_01'.
+
+P_NAME = 'SURYAKANT'.
+P_HNO = '23/CPR/04'.
+P_STREET = 'CHAPRA'.
+P_CITY = 'PATNA'.
+P_COUN = 'INDIA'.
+P_TEXT = 'THIS MY GENERAL INFORMATION'.
+
+START-OF-SELECTION.
+ PERFORM CALL_SMFORM.
+*&---------------------------------------------------------------------*
+*&      Form  CALL_SMFORM
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM CALL_SMFORM .
+*SSF_FUNCTION _MODULE NAME: THIS FUNCTION MODULE WILL TAKE AN PUT AS SMARTFORWI AND RETURNS ITS.
+CALL FUNCTION 'SSF_FUNCTION_MODULE_NAME'
+  EXPORTING
+    FORMNAME                 = P_FORMNAME " SMARTFORM NAME ZSMF_01
+ IMPORTING
+   FM_NAME                  =  P_FMNAME   "
+ EXCEPTIONS
+   NO_FORM                  = 1
+   NO_FUNCTION_MODULE       = 2
+   OTHERS                   = 3
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+* TO CALL SMARTFORMS -/1BCDWB/SF00000501.
+CALL FUNCTION P_FMNAME
+  EXPORTING
+    NAME                       = P_NAME
+    HNO                        = P_HNO
+    STREET                     = P_STREET
+    CITY                       = P_CITY
+    STATE                      = P_STATE
+    COUNTRY                    = P_COUN
+    TEXT                       = P_TEXT
+
+ EXCEPTIONS
+   FORMATTING_ERROR           = 1
+   INTERNAL_ERROR             = 2
+   SEND_ERROR                 = 3
+   USER_CANCELED              = 4
+   OTHERS                     = 5
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+ENDFORM.
