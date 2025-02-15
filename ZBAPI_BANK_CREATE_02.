@@ -1,0 +1,65 @@
+*BAPI: TO TRANSFER NON-SAP DATA TO SAP USING BAPI FUNCTION MODULE
+REPORT ZBAPI_BANK_CREATE_02.
+*tO CREWATE LINE TYPE OR STRUCTURE
+TYPES:BEGIN OF LINE_TYPE,
+        BNK_COUNTRY LIKE BAPI1011_KEY-BANK_CTRY,
+        BNK_KEY     LIKE BAPI1011_KEY-BANK_KEY,
+        BNK_NAME    LIKE BAPI1011_ADDRESS-BANK_NAME,
+        REGION      LIKE BAPI1011_ADDRESS-REGION,
+        STREET      LIKE BAPI1011_ADDRESS-STREET,
+        CITY        LIKE BAPI1011_ADDRESS-CITY,
+        BNK_BRANCH  LIKE BAPI1011_ADDRESS-BANK_BRANCH,
+      END OF LINE_TYPE.
+*      TO CREATE AN INTERNAL TABLE IT_BANK OF STRUCTURE -LINE_TYPE
+DATA IT_BANK TYPE TABLE OF LINE_TYPE .
+*      TO CREATE WORK AREA WA_BANK OF STRUCTURE -LINE_TYPE
+DATA WA_BANK TYPE LINE_TYPE.
+*TO CREATE AN INTERNAL TABLE IT_TRUX OF STRUCTURE
+DATA IT_TRUX TYPE TRUXS_T_TEXT_DATA.
+*TO CREATE AN INPUT FIELD
+PARAMETERS P_FILE LIKE IBIPPARMS-PATH.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR P_FILE.
+  PERFORM BROWSE_FILE.
+
+START-OF-SELECTION.
+  PERFORM UPLOAD_FILE.
+*&---------------------------------------------------------------------*
+*&      Form  BROWSE_FILE
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM BROWSE_FILE .
+*F4_FILENAME
+  CALL FUNCTION 'F4_FILENAME'
+    IMPORTING
+      FILE_NAME = P_FILE.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  UPLOAD_FILE
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM UPLOAD_FILE .
+*TEXT_CONVERT_XLS_TO_SAP
+  CALL FUNCTION 'TEXT_CONVERT_XLS_TO_SAP'
+    EXPORTING
+      I_TAB_RAW_DATA       = IT_TRUX
+      I_FILENAME           = P_FILE
+    TABLES
+      I_TAB_CONVERTED_DATA = IT_BANK
+    EXCEPTIONS
+      CONVERSION_FAILED    = 1
+      OTHERS               = 2.
+  IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.
