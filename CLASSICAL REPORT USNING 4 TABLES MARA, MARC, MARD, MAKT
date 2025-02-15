@@ -1,0 +1,324 @@
+*TO CREATE CLASSICAL REPORT USNING 4 TABLES MARA, MARC, MARD, MAKT
+
+
+REPORT ZCLASSICAL_REPORT_WITH_4TABLES.
+
+*CREATE A STRUCTURE LTY_MARA
+
+TYPES : BEGIN OF LTY_MARA,
+         MATNR TYPE MATNR,
+         MTART TYPE MTART,
+         MBRSH TYPE MBRSH,
+         MATKL TYPE MATKL,
+         MEINS TYPE MEINS,
+  END OF LTY_MARA.
+
+*CREATE A STRUCTURE FOR LTY_MARC
+
+TYPES : BEGIN OF LTY_MARC,
+         MATNR TYPE MATNR,
+         WERKS TYPE WERKS_D,
+         EKGRP TYPE EKGRP,
+         MINBE TYPE MINBE,
+         BSTMI TYPE BSTMI,
+  END OF LTY_MARC.
+
+*CREATE A STRUCTURE FOR LTY_MARD.
+
+TYPES : BEGIN OF LTY_MARD,
+         MATNR TYPE MATNR,
+         WERKS TYPE WERKS_D,
+         LGORT TYPE LGORT_D,
+         LABST TYPE  LABST,
+  END OF LTY_MARD.
+
+*CREATE A STRUCURE LTY_MAKT
+TYPES : BEGIN OF LTY_MAKT,
+         MATNR TYPE MATNR,
+         SPRAS TYPE SPRAS,
+         MAKTX TYPE MAKTX,
+  END OF LTY_MAKT.
+
+*CREATE A FINAL STRUCTURE LTY_FINAL WITH FIELD OF LTY_MARA, LTY_MARC, LTY_MARD, LTY_MAKT.
+
+TYPES : BEGIN OF LTY_FINAL,
+         MATNR TYPE MATNR,
+         MTART TYPE MTART,
+         MBRSH TYPE MBRSH,
+         MATKL TYPE MATKL,
+         MEINS TYPE MEINS,
+         WERKS TYPE WERKS_D,
+         EKGRP TYPE EKGRP,
+         MINBE TYPE MINBE,
+         BSTMI TYPE BSTMI,
+         LGORT TYPE LGORT_D,
+         LABST TYPE LABST,
+         SPRAS TYPE SPRAS,
+         MAKTX TYPE MAKT,
+  END OF LTY_FINAL.
+
+*TO CREATE AN INTERNAL TABLE AND WORK-AREA FOR LTY_MARA.
+  DATA : IT_MARA TYPE TABLE OF LTY_MARA,
+         WA_MARA TYPE LTY_MARA.
+
+*TO CREATE AN INTERNAL TABLE AND WORK-AREA FOR STRUCTURE LTY_MARC.
+  DATA : IT_MARC TYPE TABLE OF LTY_MARC,
+         WA_MARC TYPE LTY_MARC.
+
+*TO CREATE AN INTERNAL TABLE AND WORK-AREA FOR STRUCTURE LTY_MARA.
+  DATA : IT_MARD TYPE TABLE OF LTY_MARD,
+         WA_MARD TYPE LTY_MARD.
+
+*TO CREATE AN INTERNAL TABLE AND WORK-AREA FOR  STRUCTURE LTY_MAKT.
+  DATA : IT_MAKT TYPE TABLE OF LTY_MAKT,
+         WA_MAKT TYPE LTY_MAKT.
+
+*TO CREATE AN INTERNAL TABLE AND WORK-AREA FOR  STRUCTURE LTY_MARA.
+  DATA : IT_FINAL TYPE TABLE OF LTY_FINAL,
+         WA_FINAL TYPE LTY_FINAL.
+
+*TO CREATE A VARIABLE
+ DATA : F_MATNO TYPE MATNR.
+
+*TO CREATE AN INTERNAL TABLE AND WORK-AREA IT_FCAT.
+
+ DATA : IT_FCAT TYPE TABLE OF SLIS_FIELDCAT_ALV,
+        WA_FCAT TYPE SLIS_FIELDCAT_ALV.
+
+* FOR INPUT RANGE
+ SELECT-OPTIONS S_MATNR FOR F_MATNO.
+
+
+************* HERE START_OF_SELECTION ***************
+PERFORM GET_DATA.
+PERFORM BUILD_FIELDCAT.
+PERFORM PROCESS_DATA.
+PERFORM DISPLAY_DATA.
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM GET_DATA .
+ SELECT MATNR MTART MBRSH MATKL MEINS FROM MARA INTO TABLE IT_MARA WHERE MATNR IN S_MATNR.
+
+* USING FOR ALL ENTRIES TO FETCH DATA FROM DBTABLE MARC USING SPECIFIED INTENAL TABLE IT_MARA.
+
+   IF IT_MARA IS NOT INITIAL.
+     SELECT MATNR WERKS EKGRP MINBE BSTMI FROM MARC INTO TABLE IT_MARC FOR ALL ENTRIES IN IT_MARA WHERE MATNR = IT_MARA-MATNR.
+       ENDIF.
+
+         IF IT_MARC IS NOT INITIAL.
+           SELECT MATNR WERKS LGORT LABST FROM MARD INTO TABLE IT_MARD FOR ALL ENTRIES IN IT_MARC WHERE MATNR = IT_MARC-MATNR AND WERKS = IT_MARC-WERKS.
+              ENDIF.
+
+           IF IT_MARA IS NOT INITIAL.
+             SELECT MATNR SPRAS MAKTX FROM MAKT INTO TABLE IT_MAKT FOR ALL ENTRIES IN IT_MARA WHERE MATNR = IT_MARA-MATNR AND SPRAS = 'EN'.
+           ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  BUILD_FIELDCAT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM BUILD_FIELDCAT .
+*     COLUMN POSITION 1: MATNR : MATERIAL NUMBER
+
+  WA_FCAT-col_pos     = 1. " position of the column
+  WA_FCAT-fieldname  = 'MATNR'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-KEY = 'X'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-NO_ZERO = 'X'.
+  WA_FCAT-EMPHASIZE = 'C101'.
+  WA_FCAT-FIX_COLUMN = 'X'.
+  WA_FCAT-SELTEXT_M = 'MATERIAL'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  COLUMN POSITION 2: MTART : TYPE OF MATERIAL.
+  WA_FCAT-col_pos     = 2.
+  WA_FCAT-fieldname  = 'MTART'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C401'.
+  WA_FCAT-SELTEXT_M = 'MTRL TYPE'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  COLUMN POSITION 3: MBRSH : INDUSTRY SECTOR.
+  WA_FCAT-col_pos     = 3.
+  WA_FCAT-fieldname  = 'MBRSH'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C501'.
+  WA_FCAT-SELTEXT_M = 'INDUSTRY SECTOR'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*    COLUMN POSITION 4: MATKL : MATERIAL GROUP.
+  WA_FCAT-col_pos     = 4.
+  WA_FCAT-fieldname  = 'MATKL'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C601'.
+  WA_FCAT-SELTEXT_M = 'MATERIAL GROUP'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  COLUMN POSITION 5: MEINS : UNIT OF MEASUREMENT OF MATERIAL.
+  WA_FCAT-col_pos     = 5.
+  WA_FCAT-fieldname  = 'MTART'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'UNIT OF MEASUREMENT'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+* COLUMN POSITION 6: WERKS : PLANT.
+  WA_FCAT-col_pos     = 6.
+  WA_FCAT-fieldname  = 'WERKS'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'WERKS'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+* COLUMN POSITION 7: EKGRP : PURCHASING GROUP.
+  WA_FCAT-col_pos     = 7.
+  WA_FCAT-fieldname  = 'EKGRP'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'PURCHASE GROUP'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  * COLUMN POSITION 8: MINBE : RE-ORDER QTY.
+  WA_FCAT-col_pos     = 8.
+  WA_FCAT-fieldname  = 'MINBE'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'REORDERQTY'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  * COLUMN POSITION 9: BSTMI : .MIN ORDER QTY
+  WA_FCAT-col_pos     = 9.
+  WA_FCAT-fieldname  = 'BSTMI'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'MIN ORDER QTY'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  COLUMN POSITION 10: LGORT : STORAGE LOCATION
+  WA_FCAT-col_pos     = 10.
+  WA_FCAT-fieldname  = 'LGORT'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'STORAGE LOC.'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  COLUMN POSITION 11: LABST: QUANTITY
+  WA_FCAT-col_pos     = 11.
+  WA_FCAT-fieldname  = 'LABST'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'QUANTITY'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+*  COLUMN POSITION 12: SPRAS : LANGUAGE
+  WA_FCAT-col_pos     = 12.
+  WA_FCAT-fieldname  = 'SPRAS'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'LANGUAGE'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+* COLUMN POSITION 13: MAKTX : MATERIAL DESCRIPTION
+  WA_FCAT-col_pos     = 13.
+  WA_FCAT-fieldname  = 'MAKTX'.
+  WA_FCAT-TABNAME = 'IT_FINAL'.
+  WA_FCAT-JUST = 'C'.
+  WA_FCAT-EMPHASIZE = 'C701'.
+  WA_FCAT-SELTEXT_M = 'DESCRIPTION'.
+  APPEND WA_FCAT TO IT_FCAT.
+  CLEAR WA_FCAT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  PROCESS_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM PROCESS_DATA .
+
+LOOP AT IT_MARD INTO WA_MARD.
+
+    WA_FINAL-MATNR = WA_MARD-MATNR.
+    WA_FINAL-WERKS = WA_MARD-WERKS.
+    WA_FINAL-LGORT = WA_MARD-LGORT.
+    WA_FINAL-LABST = WA_MARD-LABST.
+
+    READ TABLE IT_MARA INTO WA_MARA WITH  KEY MATNR = WA_MARD-MATNR.
+    IF SY-SUBRC = 0.
+      WA_FINAL-MTART = WA_MARA-MTART.
+      WA_FINAL-MBRSH = WA_MARA-MBRSH.
+      WA_FINAL-MATKL = WA_MARA-MATKL.
+      WA_FINAL-MEINS = WA_MARA-MEINS.
+    ENDIF.
+
+    READ TABLE IT_MAKT INTO WA_MAKT WITH  KEY MATNR = WA_MARD-MATNR  SPRAS = 'EN'.
+    IF SY-SUBRC = 0.
+      WA_FINAL-SPRAS = WA_MAKT-SPRAS.
+      WA_FINAL-MAKTX = WA_MAKT-MAKTX.
+    ENDIF.
+
+    READ TABLE IT_MARC INTO WA_MARC WITH KEY MATNR = WA_MARD-MATNR  WERKS = WA_MARD-WERKS.
+    IF SY-SUBRC = 0.
+      WA_FINAL-EKGRP = WA_MARC-EKGRP.
+      WA_FINAL-MINBE = WA_MARC-MINBE.
+      WA_FINAL-BSTMI = WA_MARC-BSTMI.
+    ENDIF.
+
+    APPEND WA_FINAL TO IT_FINAL.
+    CLEAR :WA_FINAL ,WA_MARA,WA_MARC,WA_MARD,WA_MAKT.
+
+    ENDLOOP.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM DISPLAY_DATA .
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+ EXPORTING
+
+   I_CALLBACK_PROGRAM                = SY-REPID
+*   I_STRUCTURE_NAME                  =
+   I_GRID_TITLE                      = ' MATERIAL MATER DATA USING TABLE MARA, MARC, MARD, MAKT'
+   IT_FIELDCAT                       = IT_FCAT
+
+  TABLES
+    T_OUTTAB                          = IT_FINAL
+ EXCEPTIONS
+   PROGRAM_ERROR                     = 1
+   OTHERS                            = 2
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+ENDFORM.
