@@ -1,0 +1,130 @@
+*ECXAMPLE TO TRANSFER NON-SAP DATA TO SAP DATA
+REPORT ZBANK_BAPI_CHANGE_01.
+
+
+TYPES : BEGIN OF lty_bank,
+          bank_ctry  TYPE banks,
+          bank_key   TYPE bankk,
+          bank_name  TYPE banka,
+          region     TYPE regio,
+          street     TYPE stras_gp,
+*          city       TYPE ort01_gp,
+          bnk_branch TYPE brnch,
+        END OF lty_bank.
+
+* TO CREATE AN INTERNAL TABLE IT_BANK OF STRUCTURE LTY_BANK.
+DATA : it_bank TYPE TABLE OF lty_bank.
+* TO CREATE A WORK-AREA OF STRUCTURE LTY_BANK.
+DATA : wa_bank TYPE lty_bank.
+
+
+*  TO CREATE AN INTERNAL TABLE OF STRUCTURE IT_TRUX.
+DATA : it_trux TYPE truxs_t_text_data.
+
+* TO CREATA A WORK AREA WA_ADDRX OF STRUCTURE ADDRESS.
+DATA : WA_ADDR TYPE BAPI1011_ADDRESS.
+
+* TO CREATA A WORK AREA WA_ADDR OF STRUCTURE ADDRESS.
+DATA : WA_ADDRX TYPE BAPI1011_ADDRESSX.  " THIS WORK AREA IS USED TO CHANGE THE FIELDS DATA.
+
+* TO CREATA A WORK AREA WA_RET OF STRUCTURE BAPIRET2.
+DATA : WA_RET TYPE BAPIRET2.
+
+* TO CREATE AN INPUT FIELD
+PARAMETERS f_file LIKE ibipparms-path.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR f_file.
+  PERFORM browse_file.
+
+START-OF-SELECTION.
+  PERFORM upload_file.
+  PERFORM CALL_BAPI.
+*&---------------------------------------------------------------------*
+*& Form BROWSE_FILE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM browse_file .
+* F4 FILENAME
+  CALL FUNCTION 'F4_FILENAME'
+    IMPORTING
+      file_name = f_file.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form UPLOAD_FILE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM upload_file .
+* FUNCTION MODULE: TEXT_CONVERT_XLS_TO_SAP.TO UPLOAD FLAT FILE LIKE TXT...
+  CALL FUNCTION 'TEXT_CONVERT_XLS_TO_SAP'
+    EXPORTING
+      i_tab_raw_data       = it_trux
+      i_filename           = f_file
+    TABLES
+      i_tab_converted_data = it_bank
+    EXCEPTIONS
+      conversion_failed    = 1
+      OTHERS               = 2.
+  IF sy-subrc <> 0.
+
+   endif.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  CALL_BAPI
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM CALL_BAPI .
+  LOOP AT IT_BANK INTO WA_BANK.
+    " TO FILL ADDRESS.
+    WA_ADDR-bank_name = WA_BANK-bank_name.
+    WA_ADDR-region = WA_BANK-region.
+    WA_ADDR-street = WA_BANK-street.
+*    WA_ADDR-city = WA_BANK-city.
+    WA_ADDR-bank_branch = WA_BANK-bnk_branch.
+
+*    TO ACTIVE THE CHANGES
+    WA_ADDRX-bank_name = 'X'.
+    WA_ADDRX-region = 'X'.
+    WA_ADDRX-street = 'X'.
+    WA_ADDRX-bank_branch = 'X'.
+*BAPI_BANK_CHANGE : THIS FUNCTION IS USED TO CHANGE BANK MASTER DATA
+CALL FUNCTION 'BAPI_BANK_CHANGE'
+  EXPORTING
+    BANKCOUNTRY               = WA_BANK-bank_ctry
+    BANKKEY                   = WA_BANK-bank_key
+    BANK_ADDRESS              = WA_ADDR
+    BANK_ADDRESSX             = WA_ADDRX
+
+ IMPORTING
+   RETURN                    = WA_RET.
+
+
+ IF WA_RET-TYPE = 'E'.
+   WRITE : / WA_RET-TYPE, WA_RET-ID, WA_RET-NUMBER, WA_RET-MESSAGE.
+* BAPI_TRANSACTION_ROLLBACK : THIS FUNCTION MODULE WILL ROLLBACK THE DATA FROM SAPLUW OF DATABASE TABLE.
+CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'
+* IMPORTING
+*   RETURN        =
+          .
+ELSE.
+* BAPI_TRANSACTION_COMMIT : THIS FUNCTION MODULE WILL INSERT THE DATA FROM SAPLUW TO DATABASE TABLE.
+CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'.
+
+  WRITE : / 'BANK MASTER DATA CHANGED -',WA_BANK-bank_key.
+
+ENDIF.
+ENDLOOP.
+ENDFORM.
