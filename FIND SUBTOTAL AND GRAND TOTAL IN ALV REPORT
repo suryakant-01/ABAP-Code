@@ -1,0 +1,162 @@
+*EXAMPLE TO FIND SUBTOTAL AND GRAND TOTAL IN ALV REPORT
+REPORT ZALV_SUBTOT_GRANDTOT_01.
+
+*TO CREATE LINE TYPE OR STRUCTURE
+TYPES : BEGIN OF LINE_TYPE,
+        VBELN  TYPE VBELN_VA,
+        POSNR  TYPE POSNR_VA,
+        MATNR  TYPE MATNR,
+        NETWR  TYPE NETWR_AP,
+        KWMENG TYPE KWMENG,
+        NETPR  TYPE NETPR,
+      END OF LINE_TYPE.
+
+* TO CREATE INTERNAL TABLE IT_VBAP STRUCTURE LINE_TYPE.
+  DATA : IT_VBAP TYPE TABLE OF LINE_TYPE WITH HEADER LINE.
+
+* TO CREATE INTERNAL TABLE IT_FCAT.
+  DATA : IT_FCAT TYPE TABLE OF SLIS_FIELDCAT_ALV.
+* TO CREATE WORK-AREA IT_FCAT.
+  DATA : WA_FCAT TYPE SLIS_FIELDCAT_ALV.
+  DATA : V_VBELN TYPE VBELN_VA.
+
+* TO CREATE AN INTERNAL TABLE FOR IT_SORT OF  STRUCTURE SLIS_T_SORTINFO_ALV.
+  DATA : IT_SORT TYPE SLIS_T_SORTINFO_ALV WITH HEADER LINE.
+
+* TO CREATE CREATE A RANGE OF INPUT FIELD FOR SALES DOCUMENTS.
+
+  SELECT-OPTIONS S_VBELN FOR V_VBELN.
+
+  START-OF-SELECTION.
+  PERFORM GET_DATA.
+  PERFORM BUILD_FCAT.
+  PERFORM BUILD_SUBTOTAL.
+  PERFORM DISPLAY_DATA.
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM GET_DATA .
+SELECT VBELN POSNR MATNR NETWR KWMENG NETPR FROM VBAP INTO TABLE IT_VBAP WHERE VBELN IN S_VBELN.
+  " TO SORT INTERNAL TABLE IT_VBAP
+  SORT IT_VBAP.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  BUILD_FCAT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM BUILD_FCAT .
+  wa_fcat-col_pos = 1.
+  wa_fcat-fieldname = 'VBELN'.
+  wa_fcat-tabname = 'IT_VBAP'.
+  wa_fcat-key = 'X'.
+  wa_fcat-just = 'C'.
+  wa_fcat-seltext_l = 'SALES DOCUMENT NUMBER'.
+  wa_fcat-seltext_m = 'SALES DOC. NUM.'.
+  wa_fcat-seltext_s = 'SD NUM'.
+  WA_FCAT-NO_ZERO = 'X'.
+  APPEND wa_fcat TO it_fcat.
+  CLEAR wa_fcat.
+
+
+  wa_fcat-col_pos = 2.
+  wa_fcat-fieldname = 'POSNR'.
+  wa_fcat-tabname = 'IT_VBAP'.
+  wa_fcat-seltext_l = 'SALES ITEM'.
+  wa_fcat-seltext_m = 'ITEM'.
+*  wa_fcat-seltext_s = 'DATE'.
+  APPEND wa_fcat TO it_fcat.
+  CLEAR wa_fcat.
+
+
+  wa_fcat-col_pos = 3.
+  wa_fcat-fieldname = 'MATNR'.
+  wa_fcat-tabname = 'IT_VBAP'.
+  wa_fcat-seltext_l = 'MATERIAL NUMBER'.
+  wa_fcat-seltext_m = 'MATERIAL'.
+*  wa_fcat-seltext_s = 'DOC. CAT.'.
+*  WA_FCAT-NO_OUT = 'X'.
+  APPEND wa_fcat TO it_fcat.
+  CLEAR wa_fcat.
+
+  wa_fcat-col_pos = 4.
+  wa_fcat-fieldname = 'NETWR'.
+  wa_fcat-tabname = 'IT_VBAP'.
+  wa_fcat-seltext_l = 'NET VALUE'.
+  wa_fcat-seltext_m = 'NET VALUE'.
+  wa_fcat-seltext_s = 'NET VAL'.
+  WA_FCAT-DO_SUM = 'X'.
+  WA_FCAT-JUST = 'C'.
+  APPEND wa_fcat TO it_fcat.
+  CLEAR wa_fcat.
+
+  wa_fcat-col_pos = 5.
+  wa_fcat-fieldname = 'KWMENG'.
+  wa_fcat-tabname = 'IT_VBAP'.
+  wa_fcat-seltext_l = 'QUANTITY'.
+  wa_fcat-seltext_m = 'QUANTITY'.
+  WA_FCAT-DO_SUM = 'X'.
+  APPEND wa_fcat TO it_fcat.
+  CLEAR wa_fcat.
+
+
+  wa_fcat-col_pos = 6.
+  wa_fcat-fieldname = 'NETPR'.
+  wa_fcat-tabname = 'IT_VBAP'.
+  wa_fcat-seltext_l = 'NET PRICE'.
+  wa_fcat-seltext_m = 'NET PRICE'.
+  WA_FCAT-DO_SUM = 'X'.
+  WA_FCAT-JUST = 'C'.
+  APPEND wa_fcat TO it_fcat.
+  CLEAR wa_fcat.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM DISPLAY_DATA .
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+  EXPORTING
+
+    I_CALLBACK_PROGRAM                = SY-REPID
+    IT_FIELDCAT                       = IT_FCAT
+
+    IT_SORT                           = IT_SORT[]
+
+  TABLES
+    T_OUTTAB                          = IT_VBAP
+  EXCEPTIONS
+    PROGRAM_ERROR                     = 1
+    OTHERS                            = 2
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  BUILD_SUBTOTAL
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM BUILD_SUBTOTAL .
+    IT_SORT-FIELDNAME = 'VBELN'.
+    IT_SORT-UP = 'X'.
+    IT_SORT-SUBTOT = 'X'.
+    APPEND IT_SORT.
+ENDFORM.
