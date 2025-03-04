@@ -1,0 +1,112 @@
+REPORT zprg_for_all_entries_01.
+
+* Step 1: Define Types for MARA, MARC, MARD, and Final Table
+TYPES: BEGIN OF ty_mara,
+         matnr TYPE mara-matnr,
+         mtart TYPE mara-mtart,
+         mbrsh TYPE mara-mbrsh,
+         meins TYPE mara-meins,
+         matkl TYPE mara-matkl,
+       END OF ty_mara.
+
+TYPES: BEGIN OF ty_marc,
+         matnr TYPE marc-matnr,
+         werks TYPE marc-werks,
+         ekgrp TYPE marc-ekgrp,
+         minbe TYPE marc-minbe,
+         bstmi TYPE marc-bstmi,
+       END OF ty_marc.
+
+TYPES: BEGIN OF ty_mard,
+         matnr TYPE mard-matnr,
+         werks TYPE mard-werks,
+         lgort TYPE mard-lgort,
+         labst TYPE mard-labst,
+       END OF ty_mard.
+
+TYPES: BEGIN OF ty_final,
+         matnr TYPE mara-matnr,
+         mtart TYPE mara-mtart,
+         mbrsh TYPE mara-mbrsh,
+         meins TYPE mara-meins,
+         matkl TYPE mara-matkl,
+         werks TYPE marc-werks,
+         ekgrp TYPE marc-ekgrp,
+         minbe TYPE marc-minbe,
+         bstmi TYPE marc-bstmi,
+         lgort TYPE mard-lgort,
+         labst TYPE mard-labst,
+       END OF ty_final.
+
+* Step 2: Define Internal Tables and Work Areas
+DATA: it_mara   TYPE TABLE OF ty_mara WITH EMPTY KEY,
+      wa_mara   TYPE ty_mara,
+      it_marc   TYPE TABLE OF ty_marc WITH EMPTY KEY,
+      wa_marc   TYPE ty_marc,
+      it_mard   TYPE TABLE OF ty_mard WITH EMPTY KEY,
+      wa_mard   TYPE ty_mard,
+      it_final  TYPE TABLE OF ty_final WITH EMPTY KEY,
+      wa_final  TYPE ty_final.
+
+* Step 3: Fetch Data from MARA
+SELECT matnr mtart mbrsh meins matkl
+  INTO TABLE it_mara
+  FROM mara
+  WHERE matnr BETWEEN '000000000000000010' AND '000000000000000099'.
+
+* Step 4: Fetch Data from MARC Using FOR ALL ENTRIES
+IF it_mara IS NOT INITIAL.
+  SELECT matnr werks ekgrp minbe bstmi
+    INTO TABLE it_marc
+    FROM marc
+    FOR ALL ENTRIES IN it_mara
+    WHERE matnr = it_mara-matnr.
+ENDIF.
+
+* Step 5: Fetch Data from MARD Using FOR ALL ENTRIES
+IF it_mara IS NOT INITIAL.
+  SELECT matnr werks lgort labst
+    INTO TABLE it_mard
+    FROM mard
+    FOR ALL ENTRIES IN it_mara
+    WHERE matnr = it_mara-matnr.
+ENDIF.
+
+* Step 6: Combine Data into IT_FINAL
+LOOP AT it_mard INTO wa_mard.
+  CLEAR wa_final.
+  wa_final-matnr = wa_mard-matnr.
+  wa_final-werks = wa_mard-werks.
+  wa_final-lgort = wa_mard-lgort.
+  wa_final-labst = wa_mard-labst.
+
+  READ TABLE it_mara INTO wa_mara WITH KEY matnr = wa_mard-matnr.
+  IF sy-subrc = 0.
+    wa_final-mtart = wa_mara-mtart.
+    wa_final-mbrsh = wa_mara-mbrsh.
+    wa_final-meins = wa_mara-meins.
+    wa_final-matkl = wa_mara-matkl.
+  ENDIF.
+
+  READ TABLE it_marc INTO wa_marc WITH KEY matnr = wa_mard-matnr.
+  IF sy-subrc = 0.
+    wa_final-ekgrp = wa_marc-ekgrp.
+    wa_final-minbe = wa_marc-minbe.
+    wa_final-bstmi = wa_marc-bstmi.
+  ENDIF.
+
+  APPEND wa_final TO it_final.
+ENDLOOP.
+
+* Step 7: Display Final Data
+WRITE: / 'MATNR', 10 'MTART', 20 'MBRSH', 30 'MEINS', 40 'MATKL',
+       50 'WERKS', 60 'EKGRP', 70 'MINBE', 80 'BSTMI', 90 'LGORT', 100 'LABST'.
+
+ULINE.
+
+LOOP AT it_final INTO wa_final.
+  WRITE: / wa_final-matnr, 10 wa_final-mtart, 20 wa_final-mbrsh,
+          30 wa_final-meins, 40 wa_final-matkl, 50 wa_final-werks,
+          60 wa_final-ekgrp, 70 wa_final-minbe, 80 wa_final-bstmi,
+          90 wa_final-lgort, 100 wa_final-labst.
+ENDLOOP.
